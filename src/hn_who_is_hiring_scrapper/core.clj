@@ -8,12 +8,26 @@
             [clojure.string :as str]))
 
 
-(defn read-item [item]
-  (->> item
-       (s/select (s/class "comment"))
-       first
-       r/hickory-to-html))
+(defn retrieve-all-pages [page-id]
+  (let [url "https://news.ycombinator.com/%s"]
+    (loop [href (format "item?id=%s" page-id)
+           contents []]
+      (println "=> " href)
+      (let [url (format url href)
+            raw-content (client/get url)
+            content (->> raw-content :body h/parse h/as-hickory)
+            new-href (->> content (s/select (s/class "morelink")) first :attrs :href)]
+        (if (nil? new-href)
+          (conj contents raw-content)
+          (recur new-href (conj contents raw-content))
+          )))))
 
+(defn read-item [item]
+  (when (zero? (->> item (s/select (s/class "ind")) first :attrs :indent Integer/parseInt))
+    (->> item (s/select (s/class "comment")) first r/hickory-to-html)))
+
+(defn concat-items [coll item]
+  (conj coll "<tr><td>" item "<hr width=\"90%\" color=\"green\"></tr></td>"))
 
 (defn items [content]
   {:pre [(= 200 (:status content))
@@ -29,11 +43,17 @@
     first
     :content
     (filter map?)
-    (filter #(= "athing comtr" (:class (:attrs %))))
+    (filter #(= "athing comtr" (-> % :attrs :class)))
     (map read-item)
-    ))
+    (remove nil?)
+    (reduce concat-items [])))
 
+(defn )
 
-(def a (client/get "https://news.ycombinator.com/item?id=31235968&p=1"))
-(items a)
-
+(defn main [page-id exclude-list include-list]
+  (let [items (->> page-id
+                   retrieve-all-pages
+                   (map items)
+                   (apply concat)
+                   (apply str))]
+    (apply str ["<body><table>" items "</table></body>"])))

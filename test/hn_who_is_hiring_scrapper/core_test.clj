@@ -1,6 +1,8 @@
 (ns hn-who-is-hiring-scrapper.core-test
   (:require [clojure.test :refer :all]
             [clojure.string :as str]
+            [clj-fakes.core :as f]
+            [clj-http.client :as client]
             [hn-who-is-hiring-scrapper.core :refer :all]
             [hn-who-is-hiring-scrapper.webpage :as w]))
 
@@ -17,5 +19,7 @@
 
 
 (deftest test-read-comment
-  (is  (= true (str/starts-with? (first (items w/webpage)) "<div class=\"comment\">")))
+  (is (= true (str/starts-with? (first (items w/webpage)) "<div class=\"comment\">"))))
+
+(deftest test-concat-results
   )
