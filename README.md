@@ -1,10 +1,14 @@
-# hn-who-is-hiring-scrapper
+# HN Who is hiring Scrapper
 
-A Clojure library designed to ... well, that part is up to you.
+A Clojure library designed to scrap **Ask HN: Who is hiring?**, filter and sort by salary.
 
 ## Usage
-
-FIXME
+```
+(main 31235968
+      ["U.S. REMOTE" "US-based" "US only" "US-Only"]
+      ["remote"]
+      "/tmp/asdf.html")
+```
 
 ## License
 

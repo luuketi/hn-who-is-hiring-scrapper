@@ -6,19 +6,18 @@
             [clojure.string :as str]))
 
 (def SALARY-RANGES [150 400])
+(def BASE-URL "https://news.ycombinator.com/%s")
 
 (defn retrieve-all-pages [page-id]
-  (let [url "https://news.ycombinator.com/%s"]
-    (loop [href (format "item?id=%s" page-id)
-           contents []]
-      (println "=> " href)
-      (let [url (format url href)
-            raw-content (client/get url)
-            content (->> raw-content :body h/parse h/as-hickory)
-            new-href (->> content (s/select (s/class "morelink")) first :attrs :href)]
-        (if (nil? new-href)
-          (conj contents raw-content)
-          (recur new-href (conj contents raw-content)))))))
+  (loop [href (format "item?id=%s" page-id)
+         contents []]
+    (println "=> GET " href)
+    (let [raw-content (client/get (format BASE-URL href))
+          content (->> raw-content :body h/parse h/as-hickory)
+          new-href (->> content (s/select (s/class "morelink")) first :attrs :href)]
+      (if (nil? new-href)
+        (conj contents raw-content)
+        (recur new-href (conj contents raw-content))))))
 
 (defn read-item [item]
   (when (zero? (->> item (s/select (s/class "ind")) first :attrs :indent Integer/parseInt))
@@ -87,7 +86,3 @@
          (apply str)
          (spit file-path))))
 
-(main 31235968
-      ["U.S. REMOTE" "US-based" "US only" "US-Only"]
-      ["remote"]
-      "/home/lucas/Escritorio/asdf.html")

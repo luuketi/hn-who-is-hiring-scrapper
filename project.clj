@@ -5,6 +5,5 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [hickory "0.7.1"]
-                 [clj-http "3.12.3"]
-                 [clj-fakes "0.12.0"]]
+                 [clj-http "3.12.3"]]
   :repl-options {:init-ns hn-who-is-hiring-scrapper.core})
