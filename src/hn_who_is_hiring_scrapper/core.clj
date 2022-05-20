@@ -1,12 +1,11 @@
 (ns hn-who-is-hiring-scrapper.core
   (:require [hickory.core :as h]
-            [hickory.zip :as z]
             [hickory.render :as r]
-            [clojure.zip :as zip]
             [hickory.select :as s]
             [clj-http.client :as client]
             [clojure.string :as str]))
 
+(def SALARY-RANGES [150 400])
 
 (defn retrieve-all-pages [page-id]
   (let [url "https://news.ycombinator.com/%s"]
@@ -19,8 +18,7 @@
             new-href (->> content (s/select (s/class "morelink")) first :attrs :href)]
         (if (nil? new-href)
           (conj contents raw-content)
-          (recur new-href (conj contents raw-content))
-          )))))
+          (recur new-href (conj contents raw-content)))))))
 
 (defn read-item [item]
   (when (zero? (->> item (s/select (s/class "ind")) first :attrs :indent Integer/parseInt))
@@ -45,15 +43,51 @@
     (filter map?)
     (filter #(= "athing comtr" (-> % :attrs :class)))
     (map read-item)
-    (remove nil?)
-    (reduce concat-items [])))
+    (remove nil?)))
 
-(defn )
+(defn contains-substr? [list item default]
+  (if (empty? list)
+    default
+    (let [item (str/upper-case item)]
+      (some true? (for [e list] (str/includes? item e))))))
 
-(defn main [page-id exclude-list include-list]
-  (let [items (->> page-id
+(defn exclude-item? [list item]
+  (contains-substr? list item false))
+
+(defn include-item? [list item]
+  (contains-substr? list item true))
+
+(defn max-salary [item]
+  (let [item (str/upper-case item)]
+    (loop [s (second SALARY-RANGES)]
+      (if (str/includes? item (format "%sK" s))
+        s
+        (if (= (first SALARY-RANGES) s)
+          (first SALARY-RANGES)
+          (recur (- s 10)))))))
+
+(defn has-salary? [item]
+  (->> (-> item str/upper-case (str/replace #"401K" ""))
+       (re-seq #"\d{3}K") seq))
+
+(defn main [page-id exclude-list include-list file-path]
+  (let [exclude-list (map str/upper-case exclude-list)
+        include-list (map str/upper-case include-list)
+        items (->> page-id
                    retrieve-all-pages
                    (map items)
                    (apply concat)
+                   (filter has-salary?)
+                   (remove #(exclude-item? exclude-list %))
+                   (filter #(include-item? include-list %))
+                   (sort-by max-salary >)
+                   (reduce concat-items [])
                    (apply str))]
-    (apply str ["<body><table>" items "</table></body>"])))
+    (->> ["<body><table>" items "</table></body>"]
+         (apply str)
+         (spit file-path))))
+
+(main 31235968
+      ["U.S. REMOTE" "US-based" "US only" "US-Only"]
+      ["remote"]
+      "/home/lucas/Escritorio/asdf.html")
